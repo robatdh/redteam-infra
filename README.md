@@ -74,25 +74,32 @@ vim cloudflare_setup.sh
 ## [in bastion host] Copy and paste the script below into vim and save
 ## [+] ----- START SCRIPT ----- [+]
 #!/bin/bash
+
 set -euo pipefail
-CF_API_TOKEN="<cloudflare_api_token>"
-TUNNEL_NAME="<projet_name>-c2-tunnel"
-TUNNEL_DOMAIN="<purchased_domain>"
+
+CF_API_TOKEN="hVaUSb65B0gwO35J_BVm3mtgdGn8oJq13v2OfZWy"
+TUNNEL_NAME="soc-east-1-c2-tunnel"
+TUNNEL_DOMAIN="fmovies4.org"
+
 CLOUDFLARED_DIR="/home/redirector/.cloudflared"
 mkdir /home/redirector/.cloudflared
 mv /home/redirector/cert.pem /home/redirector/.cloudflared/
-cloudflared tunnel create "\$TUNNEL_NAME"
-TUNNEL_ID=\$(basename "\$CLOUDFLARED_DIR"/*.json)
-TUNNEL_ID="\${TUNNEL_ID%.json}"
-echo "Tunnel ID: \$TUNNEL_ID"
-cat << 'EOF2' > "\$CLOUDFLARED_DIR/config.yml"
-tunnel: \$TUNNEL_ID
-credentials-file: \$CLOUDFLARED_DIR/\$TUNNEL_ID.json
+
+cloudflared tunnel create $TUNNEL_NAME
+TUNNEL_ID=$(basename "$CLOUDFLARED_DIR"/*.json)
+TUNNEL_ID="${TUNNEL_ID%.json}"
+echo "Tunnel ID: $TUNNEL_ID"
+
+cat << EOF2 > $CLOUDFLARED_DIR/config.yml
+tunnel: $TUNNEL_ID
+credentials-file: $CLOUDFLARED_DIR/$TUNNEL_ID.json
+
 protocol: http2
 no-autoupdate: true
 edge-ip-version: 6
+
 ingress:
-  - hostname: \$TUNNEL_DOMAIN
+  - hostname: $TUNNEL_DOMAIN
     service: https://localhost:443
     originRequest:
       noTLSVerify: true
@@ -106,7 +113,8 @@ EOF2
 chmod +x cloudflare_setup.sh
 chmod +x cert.pem
 ## [in bastion host] Copy files to redirector (your cloudflare.deb filename may be different depending on arch & ver)
-scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@10.0.15.60:~
+scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@<redirector_ip>:~
+ssh -I .ssh/internal.pem redirector@<redirector_ip> "sudo dpkg -i cloudflared.deb && ./cloudflare_setup.sh"
 
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
