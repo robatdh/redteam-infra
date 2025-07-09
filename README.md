@@ -59,7 +59,8 @@ cloudflared login
 
 # Step 2
 # Verify your AWS resources are running with manage_aws.sh > option 2 > [type your region]
-# Verify you can ssh into your bastion host with the key in redteam_infra/build/{{ project_name }}-bastion.pem
+# -[Verify you can ssh into your bastion host with the key in redteam_infra/build/{{ project_name }}-bastion.pem]-
+## Cannot SSH
 ./0_manage_aws.sh
 ssh -i ./build/{{ project_name }}-bastion.pem bastion@{{ bastion_ipv6 }}
 
