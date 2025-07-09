@@ -59,10 +59,10 @@ cloudflared login
 
 # Step 2
 # Verify your AWS resources are running with manage_aws.sh > option 2 > [type your region]
-# -[Verify you can ssh into your bastion host with the key in redteam_infra/build/{{ project_name }}-bastion.pem]-
-## Cannot SSH
+# ~~Verify you can ssh into your bastion host with the key in redteam_infra/build/{{ project_name }}-bastion.pem~~
+## Cannot SSH via IPv6.
 ./0_manage_aws.sh
-ssh -i ./build/{{ project_name }}-bastion.pem bastion@{{ bastion_ipv6 }}
+~~ssh -i ./build/{{ project_name }}-bastion.pem bastion@{{ bastion_ipv6 }}~~
 
 # Step 3
 # Set up Cloudflare redirector
