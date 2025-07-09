@@ -59,14 +59,45 @@ cloudflared login
 
 # Step 2
 # Verify your AWS resources are running with manage_aws.sh > option 2 > [type your region]
-# ~~Verify you can ssh into your bastion host with the key in redteam_infra/build/{{ project_name }}-bastion.pem~~
-## Cannot SSH via IPv6.
+## Cannot ssh via IPv6 from within my enterprise.
 ./0_manage_aws.sh
-~~ssh -i ./build/{{ project_name }}-bastion.pem bastion@{{ bastion_ipv6 }}~~
 
 # Step 3
 # Set up Cloudflare redirector
-./2_cloudflare_setup.sh
+## [in web browser] Download cloudflared.deb
+## [in web browser] Upload .deb to AWS S3
+## - Permission: Unlock public access
+## - Object Policy: {"Version": "2012-10-17", "Statement":[{"Sid": "AllowPublicRead","Effect": "Allow","Principal": "*","Action": "s3:GetObject","Resource": "arn:aws:s3:::<bucket_name>/*"}]}
+## [in web browser] Connect to Bastion Host
+## [in bastion host] Copy and pastethe script below to Bsation host
+#!/bin/bash
+set -euo pipefail
+CF_API_TOKEN="<cloudflare_api_token>"
+TUNNEL_NAME="<projet_name>-c2-tunnel"
+TUNNEL_DOMAIN="<purchased_domain>"
+CLOUDFLARED_DIR="/home/redirector/.cloudflared"
+mkdir /home/redirector/.cloudflared
+mv /home/redirector/cert.pem /home/redirector/.cloudflared/
+cloudflared tunnel create "\$TUNNEL_NAME"
+TUNNEL_ID=\$(basename "\$CLOUDFLARED_DIR"/*.json)
+TUNNEL_ID="\${TUNNEL_ID%.json}"
+echo "Tunnel ID: \$TUNNEL_ID"
+cat <<EOF2 > "\$CLOUDFLARED_DIR/config.yml"
+tunnel: \$TUNNEL_ID
+credentials-file: \$CLOUDFLARED_DIR/\$TUNNEL_ID.json
+protocol: http2
+no-autoupdate: true
+edge-ip-version: 6
+ingress:
+  - hostname: \$TUNNEL_DOMAIN
+    service: https://localhost:443
+    originRequest:
+      noTLSVerify: true
+  - service: http_status:404
+EOF2
+## [in bastion host] 
+## [in bastion host] 
+## [in bastion host] 
 
 # Step 4
 # Set up Cobalt Strike or C2 of choice, this will also configure your redirector for CS
