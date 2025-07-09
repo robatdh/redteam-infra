@@ -64,12 +64,15 @@ cloudflared login
 
 # Step 3
 # Set up Cloudflare redirector
-## [in web browser] Download cloudflared.deb
-## [in web browser] Upload .deb to AWS S3
+## [in web browser] Download cloudflared.deb from Cloudflare website
+## [in web browser] Create S3 Bucket to upload Cloudflare files
 ## - Permission: Unlock public access
 ## - Object Policy: {"Version": "2012-10-17", "Statement":[{"Sid": "AllowPublicRead","Effect": "Allow","Principal": "*","Action": "s3:GetObject","Resource": "arn:aws:s3:::<bucket_name>/*"}]}
-## [in web browser] Connect to Bastion Host
-## [in bastion host] Copy and pastethe script below to Bsation host
+## [in web browser] Upload cloudflared.deb and ~/.cloudflared/cert.pem
+## [in bastion host] Create cloudflare_setup.sh
+vim cloudflare_setup.sh
+## [in bastion host] Copy and paste the script below into vim and save
+## [+] ----- START SCRIPT ----- [+]
 #!/bin/bash
 set -euo pipefail
 CF_API_TOKEN="<cloudflare_api_token>"
@@ -82,7 +85,7 @@ cloudflared tunnel create "\$TUNNEL_NAME"
 TUNNEL_ID=\$(basename "\$CLOUDFLARED_DIR"/*.json)
 TUNNEL_ID="\${TUNNEL_ID%.json}"
 echo "Tunnel ID: \$TUNNEL_ID"
-cat <<EOF2 > "\$CLOUDFLARED_DIR/config.yml"
+cat << 'EOF2' > "\$CLOUDFLARED_DIR/config.yml"
 tunnel: \$TUNNEL_ID
 credentials-file: \$CLOUDFLARED_DIR/\$TUNNEL_ID.json
 protocol: http2
@@ -95,9 +98,18 @@ ingress:
       noTLSVerify: true
   - service: http_status:404
 EOF2
-## [in bastion host] 
-## [in bastion host] 
-## [in bastion host] 
+## [+] ----- END SCRIPT ----- [+]
+## [in web browser] Copy AWS S3 URLs (e.g. https://<bucketname>.s3.<region>.amazonaws.com/cert.pem)
+## [in bastion host] Edit URLs to put "dualstack" between "s3" and "us-east-1" (or w/e region) (e.g. https://bucketname.s3.dualstack.us-east-1.amazonaws.com/cert.pem)
+## [in bastion host] Download the files on Bastion host
+## [in bastion host] Change the permission of the script and pem
+chmod +x cloudflare_setup.sh
+chmod +x cert.pem
+## [in bastion host] Copy files to redirector (your cloudflare.deb filename may be different depending on arch & ver)
+scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@10.0.15.60:~
+
+## [in web browser] Change all AWS S3 buckets to deny public access
+## - Permission: Deny public access
 
 # Step 4
 # Set up Cobalt Strike or C2 of choice, this will also configure your redirector for CS
