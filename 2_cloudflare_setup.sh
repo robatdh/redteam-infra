@@ -91,7 +91,7 @@ TUNNEL_ID=\$(basename "\$CLOUDFLARED_DIR"/*.json)
 TUNNEL_ID="\${TUNNEL_ID%.json}"
 echo "Tunnel ID: \$TUNNEL_ID"
 
-cat <<EOF2 > "\$CLOUDFLARED_DIR/config.yml"
+cat << 'EOF2' > "\$CLOUDFLARED_DIR/config.yml"
 tunnel: \$TUNNEL_ID
 credentials-file: \$CLOUDFLARED_DIR/\$TUNNEL_ID.json
 
