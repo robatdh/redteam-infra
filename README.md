@@ -39,7 +39,7 @@ aws configure
 
 # Configure your Cloudflare setup.
 ## [in web browser] Purchase a hostname from Cloudflare to be used in Cloudflare.
-## [in web browser] Create an API Token with these settings:
+## [in web browser] Create an API Token with these settings (save this API token):
 ## - Permission: Account, Cloudflare One Networks, Edit
 ## - Permission: Account, Cloudflare One Connector: cloudflared, Edit
 ## - Permission: Account, Load Blancing: Monitors and Pools, Edit
@@ -68,36 +68,31 @@ cloudflared login
 ## [in web browser] Create S3 Bucket to upload Cloudflare files
 ## - Permission: Unlock public access
 ## - Object Policy: {"Version": "2012-10-17", "Statement":[{"Sid": "AllowPublicRead","Effect": "Allow","Principal": "*","Action": "s3:GetObject","Resource": "arn:aws:s3:::<bucket_name>/*"}]}
+## [in local device] install cloudflared and login
+## [in local device] after successfuly login, you're computer will have a ~/.cloudflared/cert.pem file
 ## [in web browser] Upload cloudflared.deb and ~/.cloudflared/cert.pem
 ## [in bastion host] Create cloudflare_setup.sh
 vim cloudflare_setup.sh
 ## [in bastion host] Copy and paste the script below into vim and save
 ## [+] ----- START SCRIPT ----- [+]
 #!/bin/bash
-
 set -euo pipefail
-
-CF_API_TOKEN="hVaUSb65B0gwO35J_BVm3mtgdGn8oJq13v2OfZWy"
-TUNNEL_NAME="soc-east-1-c2-tunnel"
-TUNNEL_DOMAIN="fmovies4.org"
-
+CF_API_TOKEN="<CF_API_TOKEN>"
+TUNNEL_NAME="<project_name>-c2-tunnel"
+TUNNEL_DOMAIN="<purchased_domain>"
 CLOUDFLARED_DIR="/home/redirector/.cloudflared"
 mkdir /home/redirector/.cloudflared
 mv /home/redirector/cert.pem /home/redirector/.cloudflared/
-
 cloudflared tunnel create $TUNNEL_NAME
 TUNNEL_ID=$(basename "$CLOUDFLARED_DIR"/*.json)
 TUNNEL_ID="${TUNNEL_ID%.json}"
 echo "Tunnel ID: $TUNNEL_ID"
-
 cat << EOF2 > $CLOUDFLARED_DIR/config.yml
 tunnel: $TUNNEL_ID
 credentials-file: $CLOUDFLARED_DIR/$TUNNEL_ID.json
-
 protocol: http2
 no-autoupdate: true
 edge-ip-version: 6
-
 ingress:
   - hostname: $TUNNEL_DOMAIN
     service: https://localhost:443
@@ -115,7 +110,9 @@ chmod +x cert.pem
 ## [in bastion host] Copy files to redirector (your cloudflare.deb filename may be different depending on arch & ver)
 scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@<redirector_ip>:~
 ssh -I .ssh/internal.pem redirector@<redirector_ip> "sudo dpkg -i cloudflared.deb && ./cloudflare_setup.sh"
-
+## [in bastion host] run cloudflared to activate your Cloudflare tunnel
+ssh -I .ssh/internal.pem redirector@<redirector_ip>
+ssh -i .ssh/internal.pem redirector@10.0.15.60 "cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run 'soc-east-1-c2-tunnel'" &
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
 
