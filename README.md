@@ -116,15 +116,12 @@ ssh -i .ssh/internal.pem redirector@10.0.15.60 "cloudflared --no-autoupdate --pr
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
 
-# Step 4 (Cobalt Strike not currently in use, will be using Metasploit)
-# Set up Cobalt Strike or C2 of choice, this will also configure your redirector for CS
-# PreRequisites:
-## 1) Host your own CobaltStrike file and replace the link in playbook.yml with your link
-## 2) Should be a 7z file
-## 3) Password protect your public Cobaltstrike 7z file
-./3_cobalt_setup.sh
+# Step 4 (will be using Metasploit)
 mkdir openjdk-11-jdk openjdk-11-jre c2-dependas re-dependas
 cd /home/bastion/openjdk-11-jdk && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jdk | grep '^\w')
+cd /home/bastion/openjdk-11-jre && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jre | grep "^\w")
+cd /home/bastion/c2-dependas && apt-get download unzip screen net-tools tcpdump socat p7zip p7zip-full && for f in p7zip_*.deb; do mv "$f" "000-$f"; done
+cd /home/bastion/re-dependas && cp /home/bastion/c2-dependas/socat* /home/bastion/re-dependas
 
 # Step 5
 # Run Cobalt Strike Server 
