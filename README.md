@@ -61,6 +61,8 @@ cloudflared login
 # Verify your AWS resources are running with manage_aws.sh > option 2 > [type your region]
 ## Cannot ssh via IPv6 from within my enterprise.
 ./0_manage_aws.sh
+export re_ipv4=<ip>
+export c2_ipv4=<ip>
 
 # Step 3
 # Set up Cloudflare redirector
@@ -108,20 +110,26 @@ EOF2
 chmod +x cloudflare_setup.sh
 chmod +x cert.pem
 ## [in bastion host] Copy files to redirector (your cloudflare.deb filename may be different depending on arch & ver)
-scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@<redirector_ip>:~
-ssh -I .ssh/internal.pem redirector@<redirector_ip> "sudo dpkg -i cloudflared.deb && ./cloudflare_setup.sh"
+scp -i .ssh/internal.pem cloudflared.deb cloudflare_setup.sh cert.pem redirector@$red_ipv4:~
+ssh -i .ssh/internal.pem redirector@$red_ipv4 "sudo dpkg -i cloudflared.deb && ./cloudflare_setup.sh"
 ## [in bastion host] run cloudflared to activate your Cloudflare tunnel
-ssh -I .ssh/internal.pem redirector@<redirector_ip>
-ssh -i .ssh/internal.pem redirector@10.0.15.60 "cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run 'soc-east-1-c2-tunnel'" &
+ssh -i .ssh/internal.pem redirector@$red_ipv4
+ssh -i .ssh/internal.pem redirector@$red_ipv4 "cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run 'soc-east-1-c2-tunnel'" &
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
 
-# Step 4 (will be using Metasploit)
+# Step 4 c2 and dependa setup (will be using Metasploit)
 mkdir openjdk-11-jdk openjdk-11-jre c2-dependas re-dependas
-cd /home/bastion/openjdk-11-jdk && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jdk | grep '^\w')
-cd /home/bastion/openjdk-11-jre && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jre | grep "^\w")
-cd /home/bastion/c2-dependas && apt-get download unzip screen net-tools tcpdump socat p7zip p7zip-full && for f in p7zip_*.deb; do mv "$f" "000-$f"; done
-cd /home/bastion/re-dependas && cp /home/bastion/c2-dependas/socat* /home/bastion/re-dependas
+# Don't think I need jdk and jre on my C2 Server if I am using Metasploit.
+# jdk install
+# cd /home/bastion/openjdk-11-jdk && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jdk | grep '^\w') && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/openjdk-11-jdk" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/openjdk-11-jdk/*.deb c2server@$c2_ipv4:/home/c2server/openjdk-11-jdk && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/openjdk-11-jdk/*.deb"
+# jre install
+# cd /home/bastion/openjdk-11-jre && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jre | grep "^\w") && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/openjdk-11-jre" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/openjdk-11-jre/*.deb c2server@$c2_ipv4:/home/c2server/openjdk-11-jre && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/openjdk-11-jre/*.deb"
+# install C2 dependas
+cd /home/bastion/c2-dependas && apt-get download unzip screen net-tools tcpdump socat p7zip p7zip-full && for f in p7zip_*.deb; do mv "$f" "000-$f"; done && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/c2-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/c2-dependas/*.deb c2server@$c2_ipv4:/home/c2server/c2-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/c2-dependas/*.deb"
+# install Redirector dependas
+cd /home/bastion/re-dependas && cp /home/bastion/c2-dependas/socat* /home/bastion/re-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no redirector@$re_ipv4 "mkdir -p /home/redirector/re-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/re-dependas/*.deb redirector@$re_ipv4:/home/redirector/re-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no redirector@$re_ipv4 "sudo dpkg -i /home/redirector/re-dependas/*.deb"
+
 
 # Step 5
 # Run Cobalt Strike Server 
