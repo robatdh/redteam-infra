@@ -76,7 +76,7 @@ export c2_ipv4=<ip>
 ## [in bastion host] Create cloudflare_setup.sh
 vim cloudflare_setup.sh
 ## [in bastion host] Copy and paste the script below into vim and save
-## [+] ----- START SCRIPT ----- [+]
+## [+] ----- COPY BELOW THIS LINE ----- [+]
 #!/bin/bash
 set -euo pipefail
 CF_API_TOKEN="<CF_API_TOKEN>"
@@ -102,7 +102,7 @@ ingress:
       noTLSVerify: true
   - service: http_status:404
 EOF2
-## [+] ----- END SCRIPT ----- [+]
+## [+] ----- COPY ABOVE THIS LINE ----- [+]
 ## [in web browser] Copy AWS S3 URLs (e.g. https://<bucketname>.s3.<region>.amazonaws.com/cert.pem)
 ## [in bastion host] Edit URLs to put "dualstack" between "s3" and "us-east-1" (or w/e region) (e.g. https://bucketname.s3.dualstack.us-east-1.amazonaws.com/cert.pem)
 ## [in bastion host] Download the files on Bastion host
@@ -118,18 +118,24 @@ ssh -i .ssh/internal.pem redirector@$red_ipv4 "cloudflared --no-autoupdate --pro
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
 
-# Step 4 c2 and dependa setup (will be using Metasploit)
+# Step 4 C2 and dependa setup (will be using Metasploit)
 mkdir openjdk-11-jdk openjdk-11-jre c2-dependas re-dependas
 # Don't think I need jdk and jre on my C2 Server if I am using Metasploit.
-# jdk install
+# jdk install (not needed for Metasploit)
 # cd /home/bastion/openjdk-11-jdk && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jdk | grep '^\w') && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/openjdk-11-jdk" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/openjdk-11-jdk/*.deb c2server@$c2_ipv4:/home/c2server/openjdk-11-jdk && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/openjdk-11-jdk/*.deb"
-# jre install
+# jre install (not needed for Metasploit)
 # cd /home/bastion/openjdk-11-jre && apt-get download $(apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances --no-pre-depends openjdk-11-jre | grep "^\w") && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/openjdk-11-jre" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/openjdk-11-jre/*.deb c2server@$c2_ipv4:/home/c2server/openjdk-11-jre && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/openjdk-11-jre/*.deb"
 # install C2 dependas
 cd /home/bastion/c2-dependas && apt-get download unzip screen net-tools tcpdump socat p7zip p7zip-full && for f in p7zip_*.deb; do mv "$f" "000-$f"; done && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/c2-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/c2-dependas/*.deb c2server@$c2_ipv4:/home/c2server/c2-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/c2-dependas/*.deb"
 # install Redirector dependas
 cd /home/bastion/re-dependas && cp /home/bastion/c2-dependas/socat* /home/bastion/re-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no redirector@$re_ipv4 "mkdir -p /home/redirector/re-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/re-dependas/*.deb redirector@$re_ipv4:/home/redirector/re-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no redirector@$re_ipv4 "sudo dpkg -i /home/redirector/re-dependas/*.deb"
-
+# install Metasploit
+# [in web browser] Download metasploit installer from https://github.com/rapid7/metasploit-framework/wiki/Nightly-Installers. I had to download on personal and then upload to S3 in personal AWS account.
+# [in bastion host] set up msfconsole with the following:
+wget -O msf_installer.deb https://msf-dependas.s3.dualstack.us-west-1.amazonaws.com/msf_6.4.76_20250720_amd64.deb && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/msf-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/msf-dependas/msf_installer.deb c2server@$c2_ipv4:/home/c2server/msf-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/msf-dependas/*.deb"
+ssh -i .ssh/internal.pem c2server@$c2_ipv4
+msfconsole
+# Answer yes to: Would you like to use and setup a new database (recommended)? yes
 
 # Step 5
 # Run Cobalt Strike Server 
