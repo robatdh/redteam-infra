@@ -117,6 +117,10 @@ ssh -i .ssh/internal.pem redirector@$red_ipv4
 ssh -i .ssh/internal.pem redirector@$red_ipv4 "cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run 'soc-east-1-c2-tunnel'" &
 ## [in web browser] Change all AWS S3 buckets to deny public access
 ## - Permission: Deny public access
+## [in web browser] ADD DNS records to your Cloudflare domain to route traffic to the tunnel.
+## - Type: CNAME
+## - Name: <domain name>
+## - Content: <tunnel_id>.cfargotunnel.com
 
 # Step 4 C2 and dependa setup (will be using Metasploit)
 mkdir openjdk-11-jdk openjdk-11-jre c2-dependas re-dependas
