@@ -160,7 +160,7 @@ wget -O msf_installer.deb https://dandh-c2.s3.dualstack.us-west-1.amazonaws.com/
 
 # [in Redirector] Run Cloudflare Tunneling to mask your IPv6 address and redirect IPv6 traffic hitting Redirector to C2 Server
 tmux new -s redirector
-cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel run
+cloudflared --no-autoupdate --protocol http2 --edge-ip-version 6 tunnel --loglevel debug run &
 ctrl+b , "
 # Change $c2_ipv4
 sudo socat TCP6-LISTEN:443,reuseaddr,fork TCP4:$c2_ipv4:443 &
