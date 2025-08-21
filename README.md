@@ -166,6 +166,25 @@ ctrl+b , "
 sudo socat TCP6-LISTEN:443,reuseaddr,fork TCP4:$c2_ipv4:443 &
 ctrl+b, d
 
+## Python Server
+[On redirector] edit .cloudflare/config.yml to include
+```bash
+  - hostname: files.domain.org
+    service: http://localhost:8844
+    originRequest:
+      noTLSVerify: true
+```
+[On redirector] run socat command to redirect localhost:8844 to c2:8844
+```bash
+socat -d -d TCP6-LISTEN:8844,reuseaddr,fork TCP4:10.0.142.165:8844
+```
+[In cloudflare] add DNS entry for files.domain.org
+CNAME FILES <TUNNEL>
+[In C2] run python server
+```bash
+python3 -m http.server 8844 --bind 0.0.0.0 &
+```
+
 ## Troubleshooting
 ### Cloudflare error 1033 when navigating to your domain
 ```bash
